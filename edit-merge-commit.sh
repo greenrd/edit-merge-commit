@@ -15,6 +15,16 @@ cat_tmp_file() {
   out_tmp_file "$2.$3" git show "$1:$2"
 }
 
+# Print commit
+pc() {
+  git log -1 $*
+}
+
+# Summarise commit on a single line
+sl() {
+  pc --oneline $*
+}
+
 get_original_conflicts() {
   if [ "${commit_to_edit}" = "-w" ]; then
     for file in ${files_to_edit}; do
@@ -26,12 +36,12 @@ get_original_conflicts() {
       mv ${file}{.tmp,}
     done
   else
-    # Warning: Does not work for octupus merges!
+    # Warning: Does not work for octopus merges!
     rev1=HEAD^1
     rev3=HEAD^2
     rev2=$(git merge-base $rev1 $rev3)
-    git log -1 | sed '1,/Conflicts:$/d' | while read file; do
-      out_tmp_file "${file}.conflicts" git merge-file $(cat_tmp_file $rev1 "$file" 1) $(cat_tmp_file $rev2 "$file" 2) $(cat_tmp_file $rev3 "$file" 3) --stdout
+    pc | sed '1,/Conflicts:$/d' | while read file; do
+      out_tmp_file "${file}.conflicts" git merge-file -L "$(sl $rev1)" $(cat_tmp_file $rev1 "$file" 1) -L "$(sl $rev2)" $(cat_tmp_file $rev2 "$file" 2) -L "$(sl $rev3)" $(cat_tmp_file $rev3 "$file" 3) --stdout
     done
   fi
 }
