@@ -3,11 +3,19 @@ commit_to_edit=$1
 shift
 files_to_edit="$@"
 
+tmp_dir="$(mktemp -d ".tmp.XXXXXX")"
+
+cleanup() {
+  rm -rf "$tmp_dir"
+  [ -z $old_git_config_key ] || git config $old_git_config_key $old_git_config_value
+}
+
+trap cleanup EXIT INT TERM
+
 out_tmp_file() {
-  out=$(mktemp $1.XXXX)
+  out="${tmp_dir}/$1"
   shift
   "$@" > "$out"
-  trap "trap \"rm \\\"$out\\\"\" EXIT INT TERM" 0
   echo "$out"
 }
 
@@ -30,9 +38,9 @@ get_original_conflicts() {
     for file in ${files_to_edit}; do
       mv ${file}{,.tmp}
       git checkout -m ${file}
-      mv ${file}{,.conflicts}
-      trap "trap \"rm \\\"${file}.conflicts\\\"\" EXIT INT TERM" 0
-      echo "${file}.conflicts"
+      out="${tmp_dir}/${file}.conflicts"
+      mv ${file} "${out}"
+      echo "${out}"
       mv ${file}{.tmp,}
     done
   else
@@ -47,7 +55,8 @@ get_original_conflicts() {
 }
 
 temporarily_change_git_config() {
-  trap "trap \"git config $1 \\\"$(git config $1)\\\"\" EXIT INT TERM" 0
+  old_git_config_key=$1
+  old_git_config_value="$(git config $1)"
   git config $1 "$2"
 }
 
