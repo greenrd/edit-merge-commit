@@ -7,7 +7,7 @@ tmp_dir="$(mktemp -d ".tmp.XXXXXX")"
 
 cleanup() {
   rm -rf "$tmp_dir"
-  [ -z $old_git_config_key ] || git config $old_git_config_key $old_git_config_value
+  [ -z "$old_git_config_key" ] || git config $old_git_config_key $old_git_config_value
 }
 
 trap cleanup EXIT INT TERM
@@ -63,7 +63,7 @@ temporarily_change_git_config() {
 if [ "${commit_to_edit}" = "-w" ]; then
   # Working directory - not committed yet
   ${EDITOR:-${VISUAL:-vi}} ${files_to_edit} $(get_original_conflicts)
-  git add ${files_to_edit}
+  [ -z "${files_to_edit}" ] || git add ${files_to_edit}
 else
   rerere-train.sh ^$commit_to_edit
   short_hash=$(git rev-parse --short $commit_to_edit)
