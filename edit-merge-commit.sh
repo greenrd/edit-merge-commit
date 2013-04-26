@@ -54,6 +54,11 @@ get_original_conflicts() {
   fi
 }
 
+launch_editor() {
+  ${VISUAL:-${EDITOR:-vi}} ${files_to_edit} $(get_original_conflicts)  
+  [ -z "${files_to_edit}" ] || git add ${files_to_edit}
+}
+
 temporarily_change_git_config() {
   old_git_config_key=$1
   old_git_config_value="$(git config $1)"
@@ -62,15 +67,13 @@ temporarily_change_git_config() {
 
 if [ "${commit_to_edit}" = "-w" ]; then
   # Working directory - not committed yet
-  ${EDITOR:-${VISUAL:-vi}} ${files_to_edit} $(get_original_conflicts)
-  [ -z "${files_to_edit}" ] || git add ${files_to_edit}
+  launch_editor
 else
   rerere-train.sh ^$commit_to_edit
   short_hash=$(git rev-parse --short $commit_to_edit)
   temporarily_change_git_config rerere.enabled true
   EDITOR="sed -i -e \"s/^pick ${short_hash} /edit ${short_hash} /\" " git rebase -i -p ${commit_to_edit}^
-  ${EDITOR:-${VISUAL:-vi}} ${files_to_edit} $(get_original_conflicts)
-  git add ${files_to_edit}
+  launch_editor
   git commit --amend
   git rebase --continue
 fi
